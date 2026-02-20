@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@keyframes scanline {
+  0% { top: 10%; }
+  50% { top: 85%; }
+  100% { top: 10%; }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
