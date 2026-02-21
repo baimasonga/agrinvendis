@@ -35,15 +35,20 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authReady, setAuthReady] = useState(false);
-  const [inv, setInv] = useState(INIT_INVENTORY);
-  const [benes, setBenes] = useState(INIT_BENES);
-  const [dists, setDists] = useState(INIT_DISTS);
-  const [fleet, setFleet] = useState(INIT_FLEET);
-  const [officers, setOfficers] = useState(INIT_OFFICERS);
-  const [routes, setRoutes] = useState(INIT_ROUTES);
-  const [warehouses, setWarehouses] = useState(INIT_WAREHOUSES);
-  const [pods, setPods] = useState(INIT_PODS);
-  const [users, setUsers] = useState(INIT_USERS);
+  const BUILD = "2026-02-21-clean1";
+  const displayName = authUser?.email || "Loading...";
+  const displayInitial = (authUser?.email || "U").slice(0,1).toUpperCase();
+  const displayRole = profile?.role || "—";
+  // Start with empty state (no demo/seed records). Data is loaded from Supabase or local offline cache.
+  const [inv, setInv] = useState([]);
+  const [benes, setBenes] = useState([]);
+  const [dists, setDists] = useState([]);
+  const [fleet, setFleet] = useState([]);
+  const [officers, setOfficers] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [pods, setPods] = useState([]);
+  const [users, setUsers] = useState([]);
   const [panel, setPanel] = useState(null);
   const [modal, setModal] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -144,7 +149,11 @@ export default function App() {
 
     (async () => {
       try {
-        const res = await supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle();
+        const res = await supabase
+          .from("profiles")
+          .select("user_id,email,role,full_name,created_at")
+          .eq("user_id", authUser.id)
+          .maybeSingle();
         if (res.error) throw res.error;
 
         if (!res.data) {
@@ -162,8 +171,9 @@ export default function App() {
           setProfile(res.data);
         }
       } catch (e) {
-        console.error(e);
-        showToast("Failed to load/create profile (check RLS)", "error");
+        console.error("Profile load/create error:", e);
+        const msg = (e && (e.message || e.details || e.hint)) ? (e.message || e.details || e.hint) : "Failed to load/create profile";
+        showToast(`${msg} (check RLS)`, "error");
       }
     })();
   }, [authReady, authUser, showToast]);
@@ -813,7 +823,7 @@ const verifyPod = useCallback(async (podIdOrRef) => {
     return (
       <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#0b1220",color:"#e2e8f0"}}>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:900}}>AgroFlow</div>
+          <div style={{fontSize:18,fontWeight:900}}>AgroFlow </div>
           <div style={{opacity:.8,marginTop:6}}>Loading session…</div>
         </div>
       </div>
@@ -854,8 +864,13 @@ const verifyPod = useCallback(async (podIdOrRef) => {
           ))}
         </nav>
         <div style={{padding:"14px 18px",borderTop:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>SA</div>
-          <div><div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Sarah Admin</div><div style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>Operations Manager</div></div>
+          <div style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>
+            {displayInitial}
+          </div>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{displayName}</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>{(profile?.role || "").replace(/_/g," ") || "—"}</div>
+          </div>
         </div>
       </div>
 
@@ -885,10 +900,10 @@ const verifyPod = useCallback(async (podIdOrRef) => {
           <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 10px",border:"1px solid #e2e8f0",borderRadius:999,background:"#fff"}}>
               <span style={{width:22,height:22,borderRadius:"50%",background:"#0ea5e9",color:"#fff",display:"grid",placeItems:"center",fontSize:12,fontWeight:900}}>
-                {(profile?.full_name || authUser?.email || "U").slice(0,1).toUpperCase()}
+                {displayInitial}
               </span>
               <div style={{lineHeight:1.1}}>
-                <div style={{fontSize:12,fontWeight:800,color:"#0f172a"}}>{profile?.full_name || authUser?.email}</div>
+                <div style={{fontSize:12,fontWeight:800,color:"#0f172a"}}>{displayName}</div>
                 <div style={{fontSize:11,color:"#64748b"}}>Role: {roleId.replace(/_/g," ")}</div>
               </div>
             </div>
@@ -896,8 +911,11 @@ const verifyPod = useCallback(async (podIdOrRef) => {
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4}}>
-            <Avatar label="SA" idx={0} size={32} />
-            <div><div style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>Sarah Admin</div><div style={{fontSize:10,color:"#94a3b8"}}>Operations Manager</div></div>
+            <Avatar label={displayInitial} idx={0} size={32} />
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{displayName}</div>
+              <div style={{fontSize:10,color:"#94a3b8"}}>{(profile?.role || "").replace(/_/g," ") || "—"}</div>
+            </div>
           </div>
         </div>
         <div style={{flex:1,overflow:isFullPage?"hidden":"auto",padding:isFullPage?0:"24px 24px 32px"}}>{currentPage}</div>
