@@ -92,7 +92,29 @@ export default function App() {
       sub?.subscription?.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+  if (!authUser?.id) return;
 
+  const channel = supabase
+    .channel("profile-role-watch")
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "profiles",
+        filter: `user_id=eq.${authUser.id}`,
+      },
+      (payload) => {
+        setProfile(payload.new);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [authUser?.id]);
   const invRef = useRef(inv);
   const distsRef = useRef(dists);
   const podsRef = useRef(pods);
